@@ -17,7 +17,7 @@ L’objectif est de calculer la vitesse spécifique Ns, d’identifier le type d
 
 Travail adiabatique :
 
-    Delta_H_ad = gamma * R * T1 / (gamma - 1) * [ (P2/P1)^((gamma - 1)/gamma) - 1 ]
+    Delta_H_ad = gamma * R * T1 / (gamma - 1) * [ (P2/P1)^(1-(1/gamma)) - 1 ]
 
 Vitesse spécifique :
 

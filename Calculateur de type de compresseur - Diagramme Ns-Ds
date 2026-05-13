@@ -93,11 +93,11 @@ def calculer(Q, P1, P2, T1, N_rpm, gaz):
     PR = P2 / P1
 
     # Étape 3 : travail adiabatique (J/kg)
-    exp  = (gamma - 1) / gamma
+    exp  = 1- (1/ gamma) 
     Had  = (gamma * R * T1) / (gamma - 1) * (PR**exp - 1)
 
     # Étape 4 : Ns et Ds
-    N_rps = N_rpm / 60.0                        # tr/min → tr/s
+    N_rps = N_rpm                        # tr/min → tr/s
     Ns    = (N_rps * math.sqrt(Q)) / Had**0.75
     # Ds nécessite un diamètre D → on l'estime ou l'utilisateur peut le fournir
     Ds    = None  # calculé si D fourni
@@ -122,12 +122,12 @@ def afficher_resultats(Q, P1, P2, T1, N_rpm, gaz, PR, Had, Ns):
 
     print(f"\n  ── Étape 3 : Travail adiabatique")
     print(f"      γ   = {gaz['gamma']}   |   R = {gaz['R']} J/kg·K")
-    print(f"      ΔH_ad = γRT₁/(γ-1) × [(P₂/P₁)^((γ-1)/γ) - 1]")
+    print(f"      ΔH_ad = γRT₁/(γ-1) × [(P₂/P₁)^(1-(1/γ)) - 1]")
     print(f"      ΔH_ad = {Had:,.1f} J/kg  =  {Had/1000:.3f} kJ/kg")
 
     N_rps = N_rpm / 60
     print(f"\n  ── Étape 4 : Vitesse spécifique Ns")
-    print(f"      N   = {N_rpm} tr/min = {N_rps:.4f} tr/s")
+    print(f"      N   = {N_rpm} tr/min ")
     print(f"      Ns  = N√Q / H_ad^(3/4)")
     print(f"      Ns  = {N_rps:.4f} × √{Q} / {Had:.1f}^0.75")
     print(f"      Ns  = {Ns:.6f}")

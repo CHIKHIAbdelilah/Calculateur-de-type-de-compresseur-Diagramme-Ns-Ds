@@ -1,0 +1,247 @@
+"""
+Calculateur de type de compresseur - Diagramme Ns-Ds
+=====================================================
+Formules utilisées :
+  ΔH_ad = γRT₁/(γ-1) * [(P₂/P₁)^((γ-1)/γ) - 1]
+  Ns    = N√Q / H_ad^(3/4)
+  Ds    = D * H_ad^(1/4) / √Q
+"""
+
+import math
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import numpy as np
+
+
+# ─────────────────────────────────────────────
+#  Paramètres des gaz prédéfinis
+# ─────────────────────────────────────────────
+GAZ = {
+    "1": {"nom": "Air",      "gamma": 1.40, "R": 287},
+    "2": {"nom": "Hélium",   "gamma": 1.67, "R": 2077},
+    "3": {"nom": "CO₂",      "gamma": 1.30, "R": 189},
+    "4": {"nom": "Azote N₂", "gamma": 1.40, "R": 296},
+    "5": {"nom": "Personnalisé", "gamma": None, "R": None},
+}
+
+# ─────────────────────────────────────────────
+#  Zones du diagramme Ns-Ds
+# ─────────────────────────────────────────────
+ZONES = [
+    {"nom": "Volumétrique\n(Piston / Scroll / Vis)", "Ns_min": 0.005, "Ns_max": 0.20,
+     "couleur": "#c8e6c9", "bord": "#388e3c",
+     "desc": "Très faible débit, haute pression. Ex : compresseur à piston.",
+     "rendement": "70–85 %"},
+    {"nom": "Centrifuge\n(Radial)",                   "Ns_min": 0.20,  "Ns_max": 0.50,
+     "couleur": "#bbdefb", "bord": "#1976d2",
+     "desc": "Débit modéré. Très courant en industrie pétro-chimique.",
+     "rendement": "75–85 %"},
+    {"nom": "Mixte\n(Hélico-centrifuge)",              "Ns_min": 0.50,  "Ns_max": 1.50,
+     "couleur": "#ffe0b2", "bord": "#e65100",
+     "desc": "Transition entre centrifuge et axial. Bonne plage de débit.",
+     "rendement": "78–88 %"},
+    {"nom": "Axial",                                   "Ns_min": 1.50,  "Ns_max": 4.00,
+     "couleur": "#e1bee7", "bord": "#7b1fa2",
+     "desc": "Grand débit, pression modérée. Turbines à gaz, réacteurs.",
+     "rendement": "85–92 %"},
+    {"nom": "Soufflante /\nVentilateur axial",         "Ns_min": 4.00,  "Ns_max": 15.0,
+     "couleur": "#f8bbd0", "bord": "#c2185b",
+     "desc": "Très grand débit, très faible pression différentielle.",
+     "rendement": "70–82 %"},
+]
+
+
+def separator(char="─", n=60):
+    print(char * n)
+
+
+def choisir_gaz():
+    print("\n  Choisissez le gaz :")
+    for k, v in GAZ.items():
+        if v["gamma"]:
+            print(f"    [{k}] {v['nom']}  (γ={v['gamma']}, R={v['R']} J/kg·K)")
+        else:
+            print(f"    [{k}] {v['nom']}")
+    choix = input("  Votre choix [1-5] : ").strip()
+    if choix not in GAZ:
+        choix = "1"
+    g = GAZ[choix].copy()
+    if choix == "5":
+        g["gamma"] = float(input("    Entrez γ (ex: 1.4) : "))
+        g["R"]     = float(input("    Entrez R en J/kg·K (ex: 287) : "))
+    return g
+
+
+def saisir_donnees():
+    separator()
+    print("  ÉTAPE 1 — Saisie des données du problème")
+    separator()
+    Q   = float(input("  Débit volumique Q (m³/s)          : "))
+    P1  = float(input("  Pression d'entrée P₁ (bar)        : "))
+    P2  = float(input("  Pression de sortie P₂ (bar)       : "))
+    T1  = float(input("  Température d'entrée T₁ (K)       : "))
+    N   = float(input("  Vitesse de rotation N (tr/min)    : "))
+    gaz = choisir_gaz()
+    return Q, P1, P2, T1, N, gaz
+
+
+def calculer(Q, P1, P2, T1, N_rpm, gaz):
+    gamma = gaz["gamma"]
+    R     = gaz["R"]
+
+    # Étape 2 : rapport de pression
+    PR = P2 / P1
+
+    # Étape 3 : travail adiabatique (J/kg)
+    exp  = (gamma - 1) / gamma
+    Had  = (gamma * R * T1) / (gamma - 1) * (PR**exp - 1)
+
+    # Étape 4 : Ns et Ds
+    N_rps = N_rpm / 60.0                        # tr/min → tr/s
+    Ns    = (N_rps * math.sqrt(Q)) / Had**0.75
+    # Ds nécessite un diamètre D → on l'estime ou l'utilisateur peut le fournir
+    Ds    = None  # calculé si D fourni
+
+    return PR, Had, Ns, Ds
+
+
+def identifier_type(Ns):
+    for z in ZONES:
+        if z["Ns_min"] <= Ns < z["Ns_max"]:
+            return z
+    return ZONES[-1]
+
+
+def afficher_resultats(Q, P1, P2, T1, N_rpm, gaz, PR, Had, Ns):
+    separator("═")
+    print("  RÉSULTATS DU CALCUL")
+    separator("═")
+
+    print(f"\n  ── Étape 2 : Rapport de pression")
+    print(f"      PR  = P₂/P₁ = {P2}/{P1} = {PR:.4f}")
+
+    print(f"\n  ── Étape 3 : Travail adiabatique")
+    print(f"      γ   = {gaz['gamma']}   |   R = {gaz['R']} J/kg·K")
+    print(f"      ΔH_ad = γRT₁/(γ-1) × [(P₂/P₁)^((γ-1)/γ) - 1]")
+    print(f"      ΔH_ad = {Had:,.1f} J/kg  =  {Had/1000:.3f} kJ/kg")
+
+    N_rps = N_rpm / 60
+    print(f"\n  ── Étape 4 : Vitesse spécifique Ns")
+    print(f"      N   = {N_rpm} tr/min = {N_rps:.4f} tr/s")
+    print(f"      Ns  = N√Q / H_ad^(3/4)")
+    print(f"      Ns  = {N_rps:.4f} × √{Q} / {Had:.1f}^0.75")
+    print(f"      Ns  = {Ns:.6f}")
+
+    zone = identifier_type(Ns)
+    separator()
+    print(f"\n  ── Étape 5 : Type de compresseur recommandé")
+    print(f"\n      ✔  {zone['nom'].replace(chr(10), ' ')}")
+    print(f"\n      Plage Ns     : {zone['Ns_min']} – {zone['Ns_max']}")
+    print(f"      Rendement    : {zone['rendement']}")
+    print(f"      Description  : {zone['desc']}")
+    separator()
+
+    # Option Ds si diamètre connu
+    calcul_ds = input("\n  Connaissez-vous le diamètre de roue D (m) ? [o/n] : ").strip().lower()
+    if calcul_ds == "o":
+        D  = float(input("  Entrez D en mètres : "))
+        Ds = D * Had**0.25 / math.sqrt(Q)
+        print(f"\n      Ds = D × H_ad^(1/4) / √Q")
+        print(f"      Ds = {D} × {Had**0.25:.4f} / {math.sqrt(Q):.4f}")
+        print(f"      Ds = {Ds:.4f}")
+        return Ns, Ds
+    return Ns, None
+
+
+def tracer_diagramme(Ns, Ds=None):
+    fig, ax = plt.subplots(figsize=(12, 7))
+    ax.set_xscale("log")
+    ax.set_xlim(0.005, 15)
+    ax.set_ylim(0, 14)
+
+    # Zones colorées
+    for z in ZONES:
+        ax.axvspan(z["Ns_min"], z["Ns_max"], alpha=0.35,
+                   color=z["couleur"], linewidth=0)
+        ax.axvline(x=z["Ns_max"], color=z["bord"],
+                   linestyle="--", linewidth=1.2, alpha=0.7)
+        xc = math.sqrt(z["Ns_min"] * z["Ns_max"])
+        ax.text(xc, 13, z["nom"], ha="center", va="top",
+                fontsize=8.5, color=z["bord"], fontweight="bold",
+                multialignment="center")
+
+    # Courbe guide Ds typique (indicative)
+    ns_arr = np.logspace(math.log10(0.01), math.log10(12), 300)
+    ds_guide = np.where(ns_arr < 0.5,
+                        4 + 1.5 / (ns_arr + 0.1),
+                        2.5 + 1.0 / (ns_arr**0.6))
+    ax.plot(ns_arr, ds_guide, "k-", linewidth=1.5, alpha=0.4,
+            label="Courbe guide Ds (estimée)")
+
+    # Point calculé
+    if Ds is not None:
+        ax.scatter([Ns], [Ds], color="#e53935", s=140, zorder=10,
+                   label=f"Votre point  Ns={Ns:.4f}, Ds={Ds:.3f}")
+        ax.annotate(f"  Ns={Ns:.4f}\n  Ds={Ds:.3f}",
+                    xy=(Ns, Ds), fontsize=9, color="#e53935",
+                    xytext=(Ns * 2, Ds + 1.2),
+                    arrowprops=dict(arrowstyle="->", color="#e53935"))
+    else:
+        yc = 7.0
+        ax.scatter([Ns], [yc], color="#e53935", s=140, zorder=10,
+                   label=f"Votre Ns = {Ns:.4f}  (Ds inconnu → placé à Ds=7)")
+        ax.annotate(f"  Ns={Ns:.4f}",
+                    xy=(Ns, yc), fontsize=9, color="#e53935",
+                    xytext=(Ns * 2.5, yc + 1.2),
+                    arrowprops=dict(arrowstyle="->", color="#e53935"))
+
+    # Ligne verticale Ns
+    ax.axvline(x=Ns, color="#e53935", linestyle=":", linewidth=1.5, alpha=0.8)
+
+    # Légende zones
+    patches = [mpatches.Patch(facecolor=z["couleur"], edgecolor=z["bord"],
+               label=z["nom"].replace("\n", " ")) for z in ZONES]
+    legend1 = ax.legend(handles=patches, loc="upper right",
+                        fontsize=8, title="Zones de compresseurs", title_fontsize=8.5)
+    ax.add_artist(legend1)
+    ax.legend(loc="lower left", fontsize=8.5)
+
+    ax.set_xlabel("Ns  —  Vitesse spécifique  (adimensionnel, SI)", fontsize=11)
+    ax.set_ylabel("Ds  —  Diamètre spécifique  (adimensionnel, SI)", fontsize=11)
+    ax.set_title("Diagramme Ns-Ds — Sélection du type de compresseur / pompe", fontsize=13)
+    ax.grid(True, which="both", linestyle="--", alpha=0.3)
+
+    plt.tight_layout()
+    plt.savefig("compressor_ns_ds.png", dpi=150)
+    print("\n  Diagramme sauvegardé → compressor_ns_ds.png")
+    plt.show()
+
+
+def main():
+    separator("═")
+    print("   OUTIL DE SÉLECTION DE COMPRESSEUR — Diagramme Ns-Ds")
+    separator("═")
+
+    try:
+        Q, P1, P2, T1, N, gaz = saisir_donnees()
+
+        if P2 <= P1:
+            print("  ✖  Erreur : P₂ doit être supérieur à P₁.")
+            return
+
+        PR, Had, Ns, _ = calculer(Q, P1, P2, T1, N, gaz)
+        Ns_final, Ds_final = afficher_resultats(Q, P1, P2, T1, N, gaz, PR, Had, Ns)
+
+        separator()
+        voir = input("\n  Afficher le diagramme Ns-Ds ? [o/n] : ").strip().lower()
+        if voir == "o":
+            tracer_diagramme(Ns_final, Ds_final)
+
+    except ValueError as e:
+        print(f"\n  ✖  Erreur de saisie : {e}")
+    except KeyboardInterrupt:
+        print("\n  Programme interrompu.")
+
+
+if __name__ == "__main__":
+    main()

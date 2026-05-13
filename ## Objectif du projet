@@ -1,0 +1,21 @@
+## Objectif du projet
+
+Le programme permet de :
+
+- calculer le rapport de pression ;
+- calculer le travail adiabatique de compression ;
+- calculer la vitesse spécifique `Ns` ;
+- identifier automatiquement le type de compresseur recommandé ;
+- calculer le diamètre spécifique `Ds` si le diamètre de roue est connu ;
+- afficher et sauvegarder un diagramme `Ns-Ds` avec les zones de sélection.
+
+## Formules utilisées
+
+Travail adiabatique :
+
+```math
+\Delta H_{ad} =
+\frac{\gamma R T_1}{\gamma - 1}
+\left[
+\left(\frac{P_2}{P_1}\right)^{\frac{\gamma - 1}{\gamma}} - 1
+\right]

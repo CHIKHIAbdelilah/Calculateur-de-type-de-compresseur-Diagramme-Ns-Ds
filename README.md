@@ -74,4 +74,9 @@ Le programme peut générer une image du diagramme :
 
 Cet outil est destiné à l’apprentissage et au pré-dimensionnement.
 
+
+La relation entre Ns et Ds utilisée ici est une approximation simplifiée de la courbe de Cordier. Dans un dimensionnement industriel complet, d’autres paramètres sont nécessaires : coefficient de débit, coefficient de charge, vitesse périphérique, Mach en bout de pale, rendement réel et validation CFD.
+
 Il ne remplace pas un dimensionnement industriel complet. Pour un design réel, il faut aussi prendre en compte les pertes, le rendement réel, les contraintes mécaniques, le nombre d’étages, les limites de Mach et la validation CFD.
+
+
